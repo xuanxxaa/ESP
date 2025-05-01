@@ -15,16 +15,13 @@
     <button class="off" onclick="sendCommand('off')">关灯</button>
 
     <script>
-        const binId = "6813b5608a456b7966957e6c";
-        const apiKey = "a0.nbRRxYpAherXGpMF/QjCjLIWTr/fIw6";
-
         async function sendCommand(cmd) {
 		  try {
 			const response = await fetch("https://api.jsonbin.io/v3/b/6813b5608a456b7966957e6c", {
 			  method: "PUT",
 			  headers: { 
 				"Content-Type": "application/json",
-				"X-Master-Key": "{{SECRET_KEY}}", // GitHub Actions会自动替换
+				"X-Master-Key": "a0.nbRRxYpAherXGpMF/QjCjLIWTr/fIw6", // GitHub Actions会自动替换
 				"X-Bin-Versioning": "false" // 关闭版本控制（简化请求）
 			  },
 			  body: JSON.stringify({ command: cmd })
