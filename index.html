@@ -19,20 +19,22 @@
         const apiKey = "__API_KEY__";
 
         async function sendCommand(cmd) {
-            try {
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-                    method: "PUT",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "X-Master-Key": apiKey
-                    },
-                    body: JSON.stringify({ command: cmd })
-                });
-                alert(`指令发送成功: ${cmd}`);
-            } catch (error) {
-                alert("发送指令失败: " + error);
-            }
-        }
+		  try {
+			const response = await fetch("https://api.jsonbin.io/v3/b/6813b5608a456b7966957e6c", {
+			  method: "PUT",
+			  headers: { 
+				"Content-Type": "application/json",
+				"X-Master-Key": "{{SECRET_KEY}}", // GitHub Actions会自动替换
+				"X-Bin-Versioning": "false" // 关闭版本控制（简化请求）
+			  },
+			  body: JSON.stringify({ command: cmd })
+			});
+			const data = await response.json();
+			console.log("API响应:", data); // 调试输出
+		  } catch (error) {
+			console.error("请求失败:", error);
+		  }
+		}
     </script>
 </body>
 </html>
