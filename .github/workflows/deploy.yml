@@ -1,25 +1,20 @@
-name: Deploy GitHub Pages
+name: Deploy
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Page
+      - name: 替换API密钥
         run: |
-          sed -i "s|__API_KEY__|${{ secrets.JSONBIN_API_KEY }}|g" index.html
+          sed -i 's|"{{SECRET_KEY}}"|"${{ secrets.JSONBIN_API_KEY }}"|g' index.html
 
-      - name: Deploy to GitHub Pages
+      - name: 部署到GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
