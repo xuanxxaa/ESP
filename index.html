@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ESP8266</title>
+    <title>MQTTX</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
         button { padding: 10px 20px; font-size: 16px; margin: 10px; }
-        .on { background-color: #4CAF50; color: white; }
-        .off { background-color: #f44336; color: white; }
+        .on { background: #4CAF50; color: white; }
+        .off { background: #f44336; color: white; }
     </style>
 </head>
 <body>
@@ -15,19 +15,18 @@
     <button class="off" onclick="sendCommand('off')">关灯</button>
 
     <script>
-    const API_KEY = "$2a$10$GBgVx1tX4LQDkiNcjfGWm.nbRRxYpAherXGpMF/QjCjLIWTr/fIw6"; 
+        const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt", {
+            clientId: "web-client-" + Math.random().toString(16).substr(2, 8)
+        });
 
-    async function sendCommand(cmd) {
-      const res = await fetch("https://api.jsonbin.io/v3/b/6813b5608a456b7966957e6c", {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          "X-Master-Key": API_KEY 
-        },
-        body: JSON.stringify({ command: cmd })
-      });
-      console.log(await res.json());
-    }
+        function sendCommand(cmd) {
+            client.publish("home/led", cmd);
+            console.log("已发送指令:", cmd);
+        }
+
+        client.on("connect", () => {
+            console.log("MQTT已连接");
+        });
     </script>
 </body>
 </html>
