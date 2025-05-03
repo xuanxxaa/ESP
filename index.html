@@ -1,31 +1,321 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>MQTTX</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light Control</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        button { padding: 10px 20px; font-size: 16px; margin: 10px; }
-        .on { background: #4CAF50; color: white; }
-        .off { background: #f44336; color: white; }
+        :root {
+            --primary: #4e6ef2;
+            --success: #67c23a;
+            --danger: #f56c6c;
+            --text: #303133;
+            --text-light: #606266;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #e4e7ed;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Inter', 'PingFang SC', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+			min-height: 400px;
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: var(--primary);
+            text-align: center;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(78, 110, 242, 0.1);
+        }
+        
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        #status {
+            margin: 16px 0;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .status-show {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+        
+        .status-success {
+            background: rgba(103, 194, 58, 0.1);
+            color: var(--success);
+        }
+        
+        .status-error {
+            background: rgba(245, 108, 108, 0.1);
+            color: var(--danger);
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+        }
+        
+        .control-show {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+        
+        .btn-control {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>ESP8266</h1>
-    <button class="on" onclick="sendCommand('on')">开灯</button>
-    <button class="off" onclick="sendCommand('off')">关灯</button>
+    <div class="container">
+        <h1>Light Control</h1>
+        
+        <div class="input-group">
+            <input type="text" id="visitorId" placeholder="请输入ID">
+            <button class="btn-primary" onclick="verifyAuth()">验证权限</button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div class="control-buttons" id="control-section">
+            <button class="btn-success btn-control" onclick="handleControl('on')">
+                <span>开灯</span>
+            </button>
+            <button class="btn-danger btn-control" onclick="handleControl('off')">
+                <span>关灯</span>
+            </button>
+        </div>
+    </div>
 
     <script>
+        // 全局变量存储当前有效的ID
+        let currentValidId = null;
+        
+        // 初始化LeanCloud
+        AV.init({
+            appId: "OPcY0ke4EHpxPgB20EvIZM1Z-gzGzoHsz",
+            appKey: "N3OOBBscYVzRmr33mcU4Aut2",
+            serverURL: "https://opcy0ke4.lc-cn-n1-shared.com"
+        });
+		
+		//日志记录函数
+		async function logCommand(visitorId, command) {
+			try {
+				const MQTTLog = new AV.Object('MQTT');
+				MQTTLog.set('visitor_id', visitorId);
+				MQTTLog.set('command', command);
+				await MQTTLog.save();
+				console.log('日志记录成功:', visitorId, command);
+			} catch (err) {
+				console.error('日志记录失败:', err);
+			}
+		}
+
+        // 初始化MQTT
         const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt", {
             clientId: "web-client-" + Math.random().toString(16).substr(2, 8)
         });
 
-        function sendCommand(cmd) {
-            client.publish("home/led", cmd);
-            console.log("已发送指令:", cmd);
+        // 显示状态消息
+        function showStatus(message, isSuccess) {
+            const statusEl = document.getElementById("status");
+            statusEl.textContent = message;
+            statusEl.className = isSuccess ? "status-show status-success" : "status-show status-error";
+            
+            // 3秒后淡出
+            setTimeout(() => {
+                statusEl.classList.remove("status-show");
+            }, 3000);
         }
 
+        // 验证访客权限
+        async function verifyAuth() {
+            const visitorId = document.getElementById("visitorId").value.trim();
+            if (!visitorId) {
+                showStatus("请输入访客ID", false);
+                return;
+            }
+
+            try {
+                const query = new AV.Query('VisitorAuth');
+                query.equalTo('visitor_id', visitorId);
+                const res = await query.find();
+                
+                if (res.length > 0 && Date.now() < res[0].get('expire_time').getTime()) {
+                    currentValidId = visitorId; // 存储有效ID
+                    showStatus("验证通过！", true);
+                    document.getElementById("control-section").classList.add("control-show");
+                } else {
+                    currentValidId = null;
+                    showStatus("ID无效或已过期", false);
+                    document.getElementById("control-section").classList.remove("control-show");
+                }
+            } catch (err) {
+                console.error("验证失败:", err);
+                showStatus("服务器错误，请重试", false);
+            }
+        }
+
+        // 检查ID是否仍然有效
+        async function checkIdValidity(visitorId) {
+            try {
+                const query = new AV.Query('VisitorAuth');
+                query.equalTo('visitor_id', visitorId);
+                const res = await query.find();
+                return res.length > 0 && Date.now() < res[0].get('expire_time').getTime();
+            } catch (err) {
+                console.error("验证失败:", err);
+                return false;
+            }
+        }
+
+        // 处理控制操作（新增二次验证）
+        async function handleControl(cmd) {
+            const visitorId = document.getElementById("visitorId").value.trim();
+            
+            if (!visitorId || visitorId !== currentValidId) {
+                showStatus("请先验证有效ID", false);
+                document.getElementById("control-section").classList.remove("control-show");
+                return;
+            }
+            
+            // 每次操作前都验证ID有效性
+            const isValid = await checkIdValidity(visitorId);
+            if (!isValid) {
+                currentValidId = null;
+                showStatus("授权已过期，请重新验证", false);
+                document.getElementById("control-section").classList.remove("control-show");
+                return;
+            }
+            
+            // 发送指令
+            sendCommand(cmd);
+            
+            // 按钮点击动效
+            const btn = event.target;
+            btn.style.transform = "scale(0.95)";
+            setTimeout(() => {
+                btn.style.transform = "scale(1)";
+            }, 200);
+        }
+
+        // MQTT指令发送
+        async function sendCommand(cmd) {
+			const visitorId = document.getElementById("visitorId").value.trim();
+			
+			client.publish("home/led", cmd);
+			showStatus(`指令已发送: ${cmd === 'on' ? '开灯' : '关灯'}`, true);
+			
+			// 日志记录
+			await logCommand(visitorId, cmd);
+		}
+
+        // MQTT连接状态
         client.on("connect", () => {
             console.log("MQTT已连接");
+        });
+
+        // 输入框回车触发验证
+        document.getElementById("visitorId").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") verifyAuth();
         });
     </script>
 </body>
