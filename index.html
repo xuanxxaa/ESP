@@ -41,7 +41,7 @@
         .container {
             width: 100%;
             max-width: 400px;
-			min-height: 450px;
+			min-height: 470px;
             background: var(--card);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
@@ -111,6 +111,7 @@
         #status {
             margin: 16px 0;
             padding: 10px;
+			min-height: 42px;
             border-radius: 8px;
             text-align: center;
             font-size: 14px;
@@ -203,7 +204,7 @@
         
         <div class="input-group">
             <input type="text" id="visitorId" placeholder="请输入ID">
-            <button class="btn-primary" onclick="verifyAuth()">验证权限</button>
+            <button class="btn-primary" onclick="verifyAuth()">验证</button>
         </div>
         
         <div id="status"></div>

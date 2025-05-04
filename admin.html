@@ -7,328 +7,12 @@
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4e6ef2;
-            --success: #67c23a;
-            --danger: #f56c6c;
-            --warning: #e6a23c;
-            --text: #303133;
-            --text-light: #606266;
-            --bg: #f5f7fa;
-            --card: #ffffff;
-            --border: #e4e7ed;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            transition: all 0.3s ease;
-        }
-        
-        body {
-            font-family: 'Inter', 'PingFang SC', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        
-        .container {
-            width: 100%;
-            max-width: 1000px;
-            background: var(--card);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            padding: 30px;
-            margin: 20px auto;
-        }
-        
-        h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            color: var(--primary);
-            text-align: center;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 20px;
-        }
-        
-        .section-title {
-            font-size: 18px;
-            font-weight: 500;
-            margin-bottom: 16px;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-title svg {
-            margin-right: 8px;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        input, select {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 15px;
-        }
-        
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(78, 110, 242, 0.1);
-        }
-        
-        button {
-            border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        button:active {
-            transform: scale(0.98);
-        }
-        
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-        
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-        
-        .btn-warning {
-            background: var(--warning);
-            color: white;
-        }
-        
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 16px 0;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.03);
-            border-radius: 8px;
-        }
-
-        .indicator-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ccc;
-        }
-
-        .status-on .indicator-dot {
-            background: var(--success);
-            box-shadow: 0 0 8px rgba(103, 194, 58, 0.5);
-        }
-
-        .status-off .indicator-dot {
-            background: var(--danger);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        th {
-            background-color: var(--bg);
-            font-weight: 500;
-        }
-        
-        tr:hover {
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-        
-		/* 三点菜单样式 */
-		.action-menu {
-		  position: relative;
-		  display: flex;
-		  justify-content: center;
-		  padding-right: 70%;
-		}
-
-		.menu-trigger {
-		  width: 28px;
-		  height: 28px;
-		  display: flex;
-		  align-items: center;
-		  justify-content: center;
-		  cursor: pointer;
-		  border-radius: 50%;
-		  transition: all 0.2s;
-		}
-
-		.menu-trigger:hover {
-		  background: rgba(0,0,0,0.05);
-		}
-
-		.menu-trigger::after {
-		  content: "···";
-		  font-size: 20px;
-		  line-height: 1;
-		  color: var(--text-light);
-		  transform: rotate(90deg);
-		  display: block;
-		  margin-top: -2px;
-		}
-
-		.menu-options {
-		  position: absolute;
-		  right: 0;
-		  top: 100%;
-		  background: white;
-		  border-radius: 8px;
-		  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-		  min-width: 120px;
-		  overflow: hidden;
-		  z-index: 10;
-		  opacity: 0;
-		  transform: translateY(-10px);
-		  visibility: hidden;
-		  transition: all 0.2s ease;
-		}
-
-		.action-menu.active .menu-options {
-		  opacity: 1;
-		  transform: translateY(0);
-		  visibility: visible;
-		}
-
-		.menu-option {
-		  padding: 8px 16px;
-		  font-size: 14px;
-		  color: var(--text);
-		  cursor: pointer;
-		  display: flex;
-		  align-items: center;
-		  transition: all 0.2s;
-		}
-
-		.menu-option:hover {
-		  background: var(--bg);
-		  color: var(--primary);
-		}
-
-		.menu-option.delete {
-		  color: var(--danger);
-		}
-
-		.menu-option.delete:hover {
-		  background: rgba(245,108,108,0.1);
-		}
-
-		/* 悬浮提示样式 */
-		.notification {
-		  position: fixed;
-		  top: 20px;
-		  right: 20px;
-		  padding: 12px 16px;
-		  border-radius: 8px;
-		  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-		  z-index: 1000;
-		  opacity: 0;
-		  transform: translateY(-20px);
-		  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-		}
-
-		.notification.show {
-		  opacity: 1;
-		  transform: translateY(0);
-		}
-
-		.notification.success {
-		  background-color: rgba(103, 194, 58, 0.9);
-		  color: white;
-		}
-
-		.notification.error {
-		  background-color: rgba(245, 108, 108, 0.9);
-		  color: white;
-		}
-		
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .badge-success {
-            background: rgba(103, 194, 58, 0.1);
-            color: var(--success);
-        }
-        
-        .badge-danger {
-            background: rgba(245, 108, 108, 0.1);
-            color: var(--danger);
-        }
-        
-        .badge-warning {
-            background: rgba(230, 162, 60, 0.1);
-            color: var(--warning);
-        }
-        
-        #auth-section {
-            display: none;
-        }
-        
-        #password-form {
-            max-width: 400px;
-            margin: 0 auto;
-            text-align: center;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .input-group {
-                flex-direction: column;
-            }
-        }
-    </style>
+	<link rel="stylesheet" href="./css/admin.css">
 </head>
 <body>
     <div class="container">
         <!-- 密码验证部分 -->
-        <div id="password-form">
+        <div id="password-form" style="min-height: 150px;">
             <h1>管理员登录</h1>
             <div class="input-group">
                 <input type="password" id="admin-password" placeholder="请输入管理员密码">
@@ -361,7 +45,7 @@
             </div>
             
             <!-- 访客权限管理 -->
-            <div class="section">
+            <div class="section" style="min-height: 650px;">
                 <div class="section-title">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -373,8 +57,8 @@
                 </div>
                 <div class="input-group">
                     <input type="text" id="new-visitor-id" placeholder="访客ID">
-                    <input type="number" id="expire-minutes" placeholder="有效期(分钟)" min="1" value="60">
-                    <button class="btn-primary" onclick="addVisitor()">添加权限</button>
+                    <input type="number" id="expire-minutes" placeholder="有效期(分钟)" min="1">
+                    <button class="btn-primary" onclick="addVisitor()">添加</button>
                 </div>
                 <table id="visitor-table">
                     <thead>
@@ -387,6 +71,12 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+				<div class="table-container">
+				  <div class="pagination-info" id="visitor-pagination-info"></div>
+				  <div class="pagination-container">
+					<ul class="pagination" id="visitor-pagination"></ul>
+				  </div>
+				</div>
             </div>
             
             <!-- 操作记录 -->
@@ -398,13 +88,12 @@
                         <line x1="10" y1="11" x2="10" y2="17"></line>
                         <line x1="14" y1="11" x2="14" y2="17"></line>
                     </svg>
-                    操作记录
+                    访客操作记录
                 </div>
                 <div class="input-group">
                     <input type="text" id="search-visitor" placeholder="搜索访客ID">
                     <button class="btn-primary" onclick="loadLogs()">搜索</button>
-                    <button class="btn-warning" onclick="clearSearch()">清除</button>
-					<button class="btn-success" onclick="loadLogs()">刷新</button>
+                    <button class="btn-warning" onclick="clearSearch()">重置</button>
                 </div>
                 <table id="log-table">
                     <thead>
@@ -417,303 +106,15 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+				<div class="table-container">
+				  <div class="pagination-info" id="log-pagination-info"></div>
+				  <div class="pagination-container">
+					<ul class="pagination" id="log-pagination"></ul>
+				  </div>
+				</div>
             </div>
         </div>
     </div>
-
-    <script>
-        // 初始化LeanCloud (使用MasterKey)
-        AV.init({
-            appId: "OPcY0ke4EHpxPgB20EvIZM1Z-gzGzoHsz",
-            appKey: "N3OOBBscYVzRmr33mcU4Aut2",
-            serverURL: "https://opcy0ke4.lc-cn-n1-shared.com",
-            masterKey: "B5RxFvBexMn0W5SxYBqMXt3o"
-        });
-        
-        // 管理员密码
-        const ADMIN_PASSWORD = "a";
-        
-        // MQTT客户端
-        const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt", {
-            clientId: "admin-client-" + Math.random().toString(16).substr(2, 8)
-        });
-        
-        // 验证管理员密码
-        function verifyAdmin() {
-            const password = document.getElementById("admin-password").value;
-            if (password === ADMIN_PASSWORD) {
-                document.getElementById("password-form").style.display = "none";
-                document.getElementById("auth-section").style.display = "block";
-                loadVisitors();
-                loadLogs();
-                getLightStatus();
-            } else {
-                document.getElementById("login-status").textContent = "密码错误";
-                document.getElementById("login-status").style.color = "red";
-            }
-        }
-        
-        // 加载访客权限列表
-        async function loadVisitors() {
-            try {
-                const query = new AV.Query('VisitorAuth');
-                query.descending('expire_time');
-                const visitors = await query.find();
-                
-                const tbody = document.querySelector("#visitor-table tbody");
-                tbody.innerHTML = "";
-                
-                visitors.forEach(visitor => {
-                    const row = document.createElement("tr");
-                    const expireTime = new Date(visitor.get('expire_time'));
-                    const isExpired = Date.now() > expireTime.getTime();
-                    
-                    row.innerHTML = `
-                        <td>${visitor.get('visitor_id')}</td>
-                        <td>${expireTime.toLocaleString()}</td>
-                        <td>
-                            <span class="badge ${isExpired ? 'badge-danger' : 'badge-success'}">
-                                ${isExpired ? '已过期' : '有效'}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn-danger" onclick="deleteVisitor('${visitor.id}')">删除</button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (err) {
-                console.error("加载访客列表失败:", err);
-            }
-        }
-        
-        // 添加访客权限
-        async function addVisitor() {
-            const visitorId = document.getElementById("new-visitor-id").value.trim();
-            const minutes = parseInt(document.getElementById("expire-minutes").value);
-            
-            if (!visitorId || isNaN(minutes)) {
-                alert("请输入有效的访客ID和有效期");
-                return;
-            }
-            
-            try {
-                const VisitorAuth = AV.Object.extend('VisitorAuth');
-                const newVisitor = new VisitorAuth();
-                
-                newVisitor.set('visitor_id', visitorId);
-                newVisitor.set('expire_time', new Date(Date.now() + minutes * 60000));
-                
-                await newVisitor.save();
-                document.getElementById("new-visitor-id").value = "";
-                loadVisitors();
-            } catch (err) {
-                console.error("添加访客失败:", err);
-                alert("添加失败: " + err.message);
-            }
-        }
-        
-        // 删除访客权限
-        async function deleteVisitor(objectId) {
-		  if (!confirm("确定要删除此访客权限吗？")) return;
-		  
-		  try {
-			const visitor = AV.Object.createWithoutData('VisitorAuth', objectId);
-			
-			await visitor.destroy({ 
-			  useMasterKey: true 
-			});
-			
-			loadVisitors();
-			console.log("删除成功");
-		  } catch (err) {
-			console.error("删除失败:", err);
-			alert("操作失败: " + err.message);
-		  }
-		}
-        
-        // 加载操作记录
-        async function loadLogs() {
-            try {
-                const searchId = document.getElementById("search-visitor").value.trim();
-                const query = new AV.Query('MQTT');
-                query.descending('createdAt');
-                query.limit(50);
-                
-                if (searchId) {
-                    query.equalTo('visitor_id', searchId);
-                }
-                
-                const logs = await query.find();
-                
-                const tbody = document.querySelector("#log-table tbody");
-                tbody.innerHTML = "";
-                
-                logs.forEach(log => {
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-						<td>${new Date(log.createdAt).toLocaleString()}</td>
-						<td>${log.get('visitor_id') || '未知'}</td>
-						<td>${log.get('command')}</td>
-						<td>
-						  <div class="action-menu">
-							<div class="menu-trigger" onclick="toggleMenu(this)"></div>
-							<div class="menu-options">
-							  <div class="menu-option delete" onclick="deleteLog('${log.id}', event)">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="margin-right:8px">
-								  <path d="M3 6h18"></path>
-								  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-								</svg>
-								删除
-							  </div>
-							</div>
-						  </div>
-						</td>
-					`;
-                    tbody.appendChild(row);
-                });
-            } catch (err) {
-                console.error("加载日志失败:", err);
-            }
-        }
-        
-		// 显示悬浮通知
-		function showNotification(message, isSuccess) {
-		  const notification = document.createElement('div');
-		  notification.className = `notification ${isSuccess ? 'success' : 'error'}`;
-		  notification.textContent = message;
-		  document.body.appendChild(notification);
-		  
-		  // 显示通知
-		  setTimeout(() => {
-			notification.classList.add('show');
-		  }, 10);
-		  
-		  // 3秒后自动消失
-		  setTimeout(() => {
-			notification.classList.remove('show');
-			setTimeout(() => {
-			  notification.remove();
-			}, 300);
-		  }, 3000);
-		}
-
-		// 切换下拉菜单
-		function toggleMenu(trigger) {
-		  event.stopPropagation();
-		  const menu = trigger.closest('.action-menu');
-		  const allMenus = document.querySelectorAll('.action-menu');
-		  
-		  allMenus.forEach(m => {
-			if (m !== menu) m.classList.remove('active');
-		  });
-		  
-		  menu.classList.toggle('active');
-		}
-		
-		// 点击页面其他位置关闭菜单
-		document.addEventListener('click', (e) => {
-		  if (!e.target.closest('.action-menu')) {
-			document.querySelectorAll('.action-menu').forEach(m => {
-			  m.classList.remove('active');
-			});
-		  }
-		});
-
-		// 删除日志记录
-		async function deleteLog(objectId, event) {
-		  event.stopPropagation();
-		  
-		  try {
-			const log = AV.Object.createWithoutData('MQTT', objectId);
-			await log.destroy();
-			showNotification('删除成功', true);
-			loadLogs(); // 刷新列表
-		  } catch (err) {
-			console.error("删除失败:", err);
-			showNotification('删除失败: ' + err.message, false);
-		  }
-		}
-
-		// 点击页面其他位置关闭所有下拉菜单
-		document.addEventListener('click', () => {
-		  document.querySelectorAll('.dropdown').forEach(d => {
-			d.classList.remove('show');
-		  });
-		});
-		
-        // 清除搜索
-        function clearSearch() {
-            document.getElementById("search-visitor").value = "";
-            loadLogs();
-        }
-        
-        // 灯光控制
-        async function sendCommand(cmd) {
-            try {
-                client.publish("home/led", cmd);
-                
-                // 记录管理员操作
-                const Log = new AV.Object('MQTT');
-                Log.set('visitor_id', 'admin');
-                Log.set('command', cmd);
-                Log.set('type', 'admin_action');
-                await Log.save();
-                
-                updateLightStatus(cmd);
-            } catch (err) {
-                console.error("发送指令失败:", err);
-            }
-        }
-        
-        // 获取灯光状态
-        function getLightStatus() {
-			client.publish("home/led/get_status", "");
-			
-			// 从日志获取最新状态
-			const logQuery = new AV.Query('MQTT');
-			logQuery.descending('createdAt');
-			logQuery.limit(1);
-			logQuery.find().then(lastLog => {
-				if (lastLog[0]) {
-					updateLightStatus(lastLog[0].get('command'));
-				}
-			});
-		}
-        
-        // 更新灯光状态显示
-        function updateLightStatus(status) {
-            const statusEl = document.getElementById("light-status");
-            const textEl = document.getElementById("status-text");
-            
-            statusEl.className = 'status-indicator';
-            if (status === 'on') {
-                statusEl.classList.add('status-on');
-                textEl.textContent = '开启';
-            } else if (status === 'off') {
-                statusEl.classList.add('status-off');
-                textEl.textContent = '关闭';
-            } else {
-                textEl.textContent = '未知';
-            }
-        }
-        
-        // MQTT消息处理
-        client.on("connect", () => {
-            console.log("MQTT已连接");
-            client.subscribe("home/led/status");
-        });
-        
-        client.on("message", (topic, message) => {
-            if (topic === "home/led/status") {
-                updateLightStatus(message.toString());
-            }
-        });
-        
-        // 输入框回车触发
-        document.getElementById("admin-password").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") verifyAdmin();
-        });
-    </script>
+	<script src="./js/admin.js"></script>
 </body>
 </html>
