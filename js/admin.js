@@ -7,7 +7,7 @@ AV.init({
 });
 
 // 管理员密码
-const ADMIN_PASSWORD = "a";
+const ADMIN_PASSWORD = "ljs080514";
 
 // MQTT客户端
 const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt", {
@@ -180,7 +180,7 @@ async function loadVisitors() {
 		
 		row.innerHTML = `
 			<td>${visitor.get('visitor_id')}</td>
-			<td>${expireTime.toLocaleString()}</td>
+			<td style="white-space:normal;">${expireTime.toLocaleString()}</td>
 			<td>
 				<span class="badge ${isExpired ? 'badge-danger' : 'badge-success'}">
 					${isExpired ? '已过期' : '有效'}
@@ -298,7 +298,7 @@ async function loadLogs() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${timestamp}</td>
+        <td style="white-space:normal;">${timestamp}</td>
         <td>${highlightedId}</td>
         <td>${command}</td>
         <td>
