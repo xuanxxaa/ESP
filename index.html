@@ -41,7 +41,7 @@
         .container {
             width: 100%;
             max-width: 400px;
-			min-height: 400px;
+			min-height: 450px;
             background: var(--card);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
@@ -107,6 +107,7 @@
             color: white;
         }
         
+		/* 权限状态 */
         #status {
             margin: 16px 0;
             padding: 10px;
@@ -132,7 +133,39 @@
             background: rgba(245, 108, 108, 0.1);
             color: var(--danger);
         }
-        
+		
+		/* 灯光状态 */
+        .status-indicator {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin: 16px 0;
+			padding: 12px;
+			background: rgba(0, 0, 0, 0.03);
+			border-radius: 8px;
+		}
+
+		.indicator-dot {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #ccc; /* 默认灰色 */
+		}
+
+		.status-on .indicator-dot {
+			background: var(--success);
+			box-shadow: 0 0 8px rgba(103, 194, 58, 0.5);
+		}
+
+		.status-off .indicator-dot {
+			background: var(--danger);
+		}
+
+		#status-text {
+			font-weight: 500;
+		}
+		
+		/* 控制按钮 */
         .control-buttons {
             display: flex;
             gap: 12px;
@@ -174,7 +207,11 @@
         </div>
         
         <div id="status"></div>
-        
+		
+        <div class="status-indicator" id="light-status">
+			<div class="indicator-dot"></div>
+			<span>状态：<span id="status-text">未知</span></span>
+		</div>
         <div class="control-buttons" id="control-section">
             <button class="btn-success btn-control" onclick="handleControl('on')">
                 <span>开灯</span>
@@ -199,13 +236,15 @@
 		//日志记录函数
 		async function logCommand(visitorId, command) {
 			try {
-				const MQTTLog = new AV.Object('MQTT');
-				MQTTLog.set('visitor_id', visitorId);
-				MQTTLog.set('command', command);
-				await MQTTLog.save();
-				console.log('日志记录成功:', visitorId, command);
+				const Log = new AV.Object('MQTT');
+				Log.set('visitor_id', visitorId);
+				Log.set('command', command);
+				Log.set('type', 'user_action'); // 明确标记为用户操作
+				await Log.save();
+				console.log('操作已记录:', visitorId, command);
 			} catch (err) {
 				console.error('日志记录失败:', err);
+				throw err; // 抛出错误供sendCommand处理
 			}
 		}
 
@@ -216,43 +255,58 @@
 
         // 显示状态消息
         function showStatus(message, isSuccess) {
-            const statusEl = document.getElementById("status");
-            statusEl.textContent = message;
-            statusEl.className = isSuccess ? "status-show status-success" : "status-show status-error";
-            
-            // 3秒后淡出
-            setTimeout(() => {
-                statusEl.classList.remove("status-show");
-            }, 3000);
-        }
+			const statusEl = document.getElementById("status");
+			statusEl.textContent = message;
+			statusEl.className = isSuccess ? "status-show status-success" : "status-show status-error";
+			setTimeout(() => statusEl.classList.remove("status-show"), 3000);
+		}
 
         // 验证访客权限
         async function verifyAuth() {
-            const visitorId = document.getElementById("visitorId").value.trim();
-            if (!visitorId) {
-                showStatus("请输入访客ID", false);
-                return;
-            }
+			const visitorId = document.getElementById("visitorId").value.trim();
+			if (!visitorId) {
+				showStatus("请输入访客ID", false);
+				return;
+			}
 
-            try {
-                const query = new AV.Query('VisitorAuth');
-                query.equalTo('visitor_id', visitorId);
-                const res = await query.find();
-                
-                if (res.length > 0 && Date.now() < res[0].get('expire_time').getTime()) {
-                    currentValidId = visitorId; // 存储有效ID
-                    showStatus("验证通过！", true);
-                    document.getElementById("control-section").classList.add("control-show");
-                } else {
-                    currentValidId = null;
-                    showStatus("ID无效或已过期", false);
-                    document.getElementById("control-section").classList.remove("control-show");
-                }
-            } catch (err) {
-                console.error("验证失败:", err);
-                showStatus("服务器错误，请重试", false);
-            }
-        }
+			try {
+				const query = new AV.Query('VisitorAuth');
+				query.equalTo('visitor_id', visitorId);
+				const res = await query.find();
+				
+				if (visitorId === 'admin') {
+					window.location.href = "admin.html";
+				}
+				
+				if (res.length > 0 && Date.now() < res[0].get('expire_time').getTime()) {
+					currentValidId = visitorId;
+					showStatus("验证通过！", true);
+					document.getElementById("control-section").classList.add("control-show");
+					
+					// 获取最后一次有效操作记录
+					const logQuery = new AV.Query('MQTT');
+					logQuery.equalTo('visitor_id', visitorId);
+					logQuery.equalTo('type', 'user_action');
+					logQuery.descending('createdAt');
+					logQuery.limit(1);
+					const lastLog = await logQuery.first();
+					
+					if (lastLog) {
+						updateLightStatus(lastLog.get('command'));
+						client.publish("home/led/get_status", ""); // 请求设备确认状态
+					} else {
+						updateLightStatus('unknown');
+					}
+				} else {
+					currentValidId = null;
+					showStatus("ID无效或已过期", false);
+					document.getElementById("control-section").classList.remove("control-show");
+				}
+			} catch (err) {
+				console.error("验证失败:", err);
+				showStatus("服务器错误，请重试", false);
+			}
+		}
 
         // 检查ID是否仍然有效
         async function checkIdValidity(visitorId) {
@@ -299,24 +353,53 @@
 
         // MQTT指令发送
         async function sendCommand(cmd) {
-			const visitorId = document.getElementById("visitorId").value.trim();
-			
-			client.publish("home/led", cmd);
-			showStatus(`指令已发送: ${cmd === 'on' ? '开灯' : '关灯'}`, true);
-			
-			// 日志记录
-			await logCommand(visitorId, cmd);
+			if (!currentValidId) {
+				showStatus("请先验证权限", false);
+				return;
+			}
+
+			try {
+				await logCommand(currentValidId, cmd); // 先记录操作日志
+				client.publish("home/led", cmd); // 再发送指令
+				updateLightStatus(cmd); // 本地立即更新状态
+				showStatus(`指令已发送: ${cmd === 'on' ? '开灯' : '关灯'}`, true);
+			} catch (err) {
+				showStatus("操作记录失败，指令未发送", false);
+			}
 		}
 
-        // MQTT连接状态
-        client.on("connect", () => {
-            console.log("MQTT已连接");
-        });
+        // MQTT消息处理
+		client.on("connect", () => {
+			console.log("MQTT已连接");
+		});
 
-        // 输入框回车触发验证
-        document.getElementById("visitorId").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") verifyAuth();
-        });
+		client.on("message", (topic, message) => {
+			if (topic === "home/led/status") {
+				updateLightStatus(message.toString());
+			}
+		});
+
+		// 输入框回车触发验证
+		document.getElementById("visitorId").addEventListener("keypress", (e) => {
+			if (e.key === "Enter") verifyAuth();
+		});
+
+		// 更新状态显示函数
+		function updateLightStatus(status) {
+			const statusEl = document.getElementById("light-status");
+			const textEl = document.getElementById("status-text");
+			
+			statusEl.className = 'status-indicator';
+			if (status === 'on') {
+				statusEl.classList.add('status-on');
+				textEl.textContent = '开启';
+			} else if (status === 'off') {
+				statusEl.classList.add('status-off');
+				textEl.textContent = '关闭';
+			} else {
+				textEl.textContent = '未知';
+			}
+		}
     </script>
 </body>
 </html>
